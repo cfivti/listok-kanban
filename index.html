@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6f7">
+  <title>Листок — личная канбан-доска</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font: 15px/1.45 "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: #24252b;
+      background: #f5f6f7;
+      --ink: #24252b;
+      --muted: #656873;
+      --line: #e7e8eb;
+      --focus: #6a54a6;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; min-width: 280px; }
+    button, input, textarea { font: inherit; }
+    button { color: inherit; cursor: pointer; }
+    button:focus-visible, summary:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    .wrap { width: min(1280px, calc(100% - 112px)); margin-inline: auto; }
+    .topbar { background: #fff; border-bottom: 1px solid var(--line); }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 65px;
+      font-weight: 700;
+      letter-spacing: -.025em;
+    }
+    .brand-mark {
+      display: grid;
+      place-content: center;
+      grid-auto-flow: column;
+      align-items: start;
+      gap: 2px;
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: #272731;
+    }
+    .brand-mark i { width: 3px; border-radius: 2px; background: #f6f1ff; height: 10px; }
+    .brand-mark i:nth-child(2) { background: #dfcdf8; height: 14px; }
+    .brand-mark i:nth-child(3) { background: #bce3d3; height: 8px; }
+
+    main { padding-block: 51px 54px; }
+    .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    h1 { margin: 0; font-size: clamp(29px, 4vw, 42px); line-height: 1.12; letter-spacing: -.055em; font-weight: 700; }
+    .primary, .secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 8px 13px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .primary { color: #fff; background: #292831; }
+    .primary:hover { background: #45424e; }
+    .primary:disabled { opacity: .48; cursor: default; }
+    .secondary { background: transparent; color: #565663; }
+    .secondary:hover { background: #f0eef2; }
+    .plus { display: inline-block; flex: 0 0 auto; position: relative; width: 16px; height: 16px; }
+    .plus::before, .plus::after {
+      content: "";
+      position: absolute;
+      inset: 7px 2px;
+      border-radius: 1px;
+      background: currentColor;
+    }
+    .plus::after { transform: rotate(90deg); }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 25px;
+      padding: 14px;
+      background: #fff;
+      border: 1px solid #e8e8ec;
+      border-radius: 20px;
+      box-shadow: 0 3px 12px #29273506;
+    }
+    .lane {
+      --accent: #7956ae;
+      --dot: #ad8bd9;
+      --tint: #f5effb;
+      --edge: #dbc9ee;
+      --wash: #f8f6fa;
+      --lane-line: #f0edf3;
+      min-width: 0;
+      min-height: clamp(365px, 54vh, 590px);
+      padding: 13px;
+      border: 1px solid var(--lane-line);
+      border-radius: 14px;
+      background: var(--wash);
+      transition: border-color .15s, background-color .15s;
+    }
+    .lane[data-status="doing"] {
+      --accent: #876319;
+      --dot: #e0ad4a;
+      --tint: #fdf4dd;
+      --edge: #e9d39f;
+      --wash: #faf8f3;
+      --lane-line: #f2efe7;
+    }
+    .lane[data-status="done"] {
+      --accent: #386e58;
+      --dot: #73b495;
+      --tint: #e7f4ed;
+      --edge: #b9daca;
+      --wash: #f4f8f6;
+      --lane-line: #ecf2ee;
+    }
+    .lane.is-over { border-color: var(--dot); background: var(--tint); }
+    .lane-head { display: flex; align-items: center; gap: 9px; min-height: 34px; margin: 0 3px 12px; }
+    .lane-dot { width: 5px; height: 18px; border-radius: 4px; background: var(--dot); }
+    .lane h2 { font-size: 15px; font-weight: 680; margin: 0; letter-spacing: -.017em; }
+    .count {
+      display: grid;
+      place-items: center;
+      min-width: 23px;
+      height: 22px;
+      padding: 0 5px;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      background: var(--tint);
+      border-radius: 7px;
+    }
+    .cards { display: grid; gap: 9px; }
+    .card, .editor {
+      position: relative;
+      min-width: 0;
+      border: 1px solid #e9e7ec;
+      border-radius: 11px;
+      background: #fff;
+      box-shadow: 0 2px 3px #302b3e08;
+    }
+    .card:hover, .card:focus-within { border-color: var(--edge); }
+    .card.is-dragging { opacity: .36; }
+    .card.is-before::before, .card.is-after::after {
+      content: "";
+      position: absolute;
+      inset: -5px 0 auto;
+      height: 2px;
+      background: var(--accent);
+      pointer-events: none;
+    }
+    .card.is-after::after { inset: auto 0 -5px; }
+    .card-grip {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 25px;
+      border-radius: 10px 0 0 10px;
+      cursor: grab;
+      touch-action: none;
+    }
+    .card-grip::before {
+      content: "";
+      position: absolute;
+      top: 16px;
+      left: 8px;
+      width: 8px;
+      height: 12px;
+      opacity: .7;
+      background: radial-gradient(circle, #777380 1px, transparent 1.5px) 0 0 / 4px 4px;
+      pointer-events: none;
+    }
+    .drag-preview {
+      position: fixed;
+      z-index: 4;
+      padding: 11px 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+      font-weight: 650;
+      pointer-events: none;
+      box-shadow: 0 8px 20px #26233326;
+    }
+    @media (pointer: coarse) {
+      .card-grip { display: none; }
+    }
+    .card-text {
+      display: block;
+      width: 100%;
+      min-height: 55px;
+      margin: 0;
+      padding: 13px 41px 13px 25px;
+      overflow-wrap: anywhere;
+      text-align: left;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+    }
+    .card-title { display: block; font-size: 14px; font-weight: 650; }
+    @media (pointer: coarse) { .card-text { padding-left: 13px; } }
+    .card-description { display: block; margin-top: 5px; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+    .card-actions { position: absolute; top: 10px; right: 8px; }
+    .card-actions[open] { z-index: 2; }
+    .card-actions summary {
+      display: grid;
+      place-items: center;
+      list-style: none;
+      width: 29px;
+      height: 29px;
+      border-radius: 7px;
+      cursor: pointer;
+      color: #6a6774;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .card-actions summary::-webkit-details-marker { display: none; }
+    .card-actions summary:hover, .card-actions[open] summary { background: var(--tint); color: var(--ink); }
+    .action-list {
+      position: absolute;
+      min-width: max-content;
+      right: 0;
+      top: 33px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      box-shadow: 0 6px 20px #2623331c;
+    }
+    .action-list button {
+      display: block;
+      width: 100%;
+      padding: 7px 9px;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      text-align: left;
+      font-size: 13px;
+    }
+    .action-list button:hover { background: #f2f1f4; }
+    .action-list .delete { color: #a33b48; }
+
+    .add-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: 100%;
+      min-height: 39px;
+      margin-top: 10px;
+      padding: 8px;
+      border: 1px dashed transparent;
+      border-radius: 11px;
+      background: transparent;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 640;
+    }
+    .add-card:hover { border-color: var(--edge); background: var(--tint); }
+    .cards:empty + .add-card {
+      flex-direction: column;
+      gap: 8px;
+      min-height: 101px;
+      margin-top: 0;
+      border-color: var(--edge);
+      background: var(--tint);
+    }
+    .cards:empty + .add-card:hover { border-color: var(--accent); }
+    .cards:empty + .add-card .plus {
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+      background: #ffffffa6;
+    }
+    .cards:empty + .add-card .plus::before, .cards:empty + .add-card .plus::after { inset: 13px 8px; }
+
+    .editor { padding: 10px; border-color: var(--dot); }
+    .editor input, .editor textarea {
+      display: block;
+      width: 100%;
+      padding: 8px 9px;
+      border: 1px solid #e8e6eb;
+      border-radius: 7px;
+      color: var(--ink);
+      background: #fff;
+    }
+    .editor input { font-weight: 650; }
+    .editor textarea { margin-top: 7px; min-height: 66px; resize: vertical; font-size: 13px; }
+    .editor input::placeholder, .editor textarea::placeholder { color: #73717d; }
+    .editor-buttons { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .editor-buttons button { min-height: 32px; padding: 5px 9px; }
+    .storage-error { margin: 12px 0 0; color: #9c3543; font-size: 13px; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 940px) { .wrap { width: calc(100% - 56px); } }
+    @media (max-width: 695px) {
+      .wrap { width: calc(100% - 32px); }
+      .brand { min-height: 55px; }
+      main { padding-block: 29px 35px; }
+      .board { grid-template-columns: minmax(0, 1fr); margin-top: 19px; gap: 10px; padding: 9px; border-radius: 15px; }
+      .lane { min-height: 0; padding: 10px; border-radius: 11px; }
+      .lane-head { min-height: 28px; margin-bottom: 7px; }
+      .cards:empty + .add-card { flex-direction: row; min-height: 56px; }
+    }
+    @media (max-width: 350px) {
+      .wrap { width: calc(100% - 20px); }
+      h1 { font-size: 25px; }
+      .page-heading { gap: 8px; }
+      .page-heading .primary { padding-inline: 8px; gap: 4px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .lane { transition: none; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap brand">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      Листок
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="page-heading">
+      <h1>Мои задачи</h1>
+      <button class="primary" id="new-task" type="button"><span class="plus" aria-hidden="true"></span>Новая задача</button>
+    </div>
+    <p class="storage-error" id="storage-error" role="alert" hidden>Браузер не смог сохранить изменения. Задачи доступны, пока открыта эта вкладка.</p>
+    <div class="board" id="board" role="region" aria-label="Канбан-доска"></div>
+    <div class="sr-only" aria-live="polite" id="announcement"></div>
+  </main>
+  <script>
+    "use strict";
+
+    const statuses = [
+      { id: "todo", title: "К выполнению", destination: "Вернуть к выполнению" },
+      { id: "doing", title: "В работе", destination: "Переместить в работу" },
+      { id: "done", title: "Готово", destination: "Отметить готовой" }
+    ];
+    const storageKey = "listok-kanban-v1";
+    const board = document.querySelector("#board");
+    const announcement = document.querySelector("#announcement");
+    const storageError = document.querySelector("#storage-error");
+    const lanes = new Map();
+    let tasks = [];
+    let editor = null;
+    let drag = null;
+
+    function element(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text) node.textContent = text;
+      if (tag === "button") node.type = "button";
+      return node;
+    }
+
+    function parseTasks(value) {
+      const data = JSON.parse(value ?? "[]");
+      if (!Array.isArray(data)) throw new Error("Invalid board data");
+      const ids = new Set();
+      return data.filter(task => {
+        if (!task || typeof task.id !== "string" || ids.has(task.id) ||
+            typeof task.title !== "string" || typeof task.description !== "string" ||
+            !lanes.has(task.status)) return false;
+        ids.add(task.id);
+        return true;
+      });
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(tasks));
+        storageError.hidden = true;
+      } catch {
+        storageError.hidden = false;
+      }
+    }
+
+    function focusTask(id) {
+      board.querySelector(`[data-task="${CSS.escape(id)}"] .card-text`)?.focus();
+    }
+
+    function moveTask(id, status, target = null, after = false) {
+      const task = tasks.find(item => item.id === id);
+      if (!task || target === id) return;
+      tasks = tasks.filter(item => item.id !== id);
+      const index = target ? tasks.findIndex(item => item.id === target && item.status === status) : -1;
+      const moved = { ...task, status };
+      if (index < 0) tasks.push(moved);
+      else tasks.splice(index + Number(after), 0, moved);
+      save();
+      render();
+      focusTask(id);
+      announcement.textContent = `Задача «${task.title}» перемещена в колонку «${lanes.get(status).title}».`;
+    }
+
+    function makeCard(task) {
+      const card = element("article", "card");
+      card.dataset.task = task.id;
+      const grip = element("span", "card-grip");
+      grip.setAttribute("aria-hidden", "true");
+
+      const text = element("button", "card-text");
+      text.setAttribute("aria-label", `Редактировать задачу «${task.title}»`);
+      text.append(element("span", "card-title", task.title));
+      if (task.description) {
+        const description = element("span", "card-description", task.description);
+        description.id = `description-${task.id}`;
+        text.setAttribute("aria-describedby", description.id);
+        text.append(description);
+      }
+      text.addEventListener("click", () => openEditor(task.status, task.id));
+
+      const actions = element("details", "card-actions");
+      const trigger = element("summary", "", "⋯");
+      trigger.setAttribute("aria-label", `Действия с задачей «${task.title}»`);
+      trigger.addEventListener("click", () => closeActions(actions));
+      const menu = element("div", "action-list");
+
+      for (const status of statuses) {
+        if (status.id === task.status) continue;
+        const move = element("button", "", status.destination);
+        move.addEventListener("click", () => moveTask(task.id, status.id));
+        menu.append(move);
+      }
+
+      const remove = element("button", "delete", "Удалить задачу");
+      remove.addEventListener("click", () => {
+        if (!window.confirm(`Удалить задачу «${task.title}»?`)) return;
+        if (editor?.id === task.id) editor = null;
+        tasks = tasks.filter(item => item.id !== task.id);
+        save();
+        render();
+        lanes.get(task.status).add.focus();
+        announcement.textContent = "Задача удалена.";
+      });
+      menu.append(remove);
+      actions.append(trigger, menu);
+      card.append(text, grip, actions);
+      return card;
+    }
+
+    function openEditor(status, id = null) {
+      if (editor) {
+        board.querySelector(".editor input")?.focus();
+        return;
+      }
+      const task = tasks.find(item => item.id === id);
+      editor = { id, status, title: task?.title ?? "", description: task?.description ?? "" };
+      closeActions();
+      render();
+      board.querySelector(".editor input")?.focus();
+    }
+
+    function closeEditor() {
+      const { id, status } = editor;
+      editor = null;
+      render();
+      if (id && tasks.some(task => task.id === id)) focusTask(id);
+      else lanes.get(status).add.focus();
+    }
+
+    function makeEditor() {
+      const form = element("form", "editor");
+      const title = element("input");
+      title.type = "text";
+      title.required = true;
+      title.maxLength = 180;
+      title.placeholder = "Название задачи";
+      title.setAttribute("aria-label", title.placeholder);
+      title.value = editor.title;
+
+      const description = element("textarea");
+      description.rows = 2;
+      description.placeholder = "Описание (необязательно)";
+      description.setAttribute("aria-label", description.placeholder);
+      description.value = editor.description;
+
+      const controls = element("div", "editor-buttons");
+      const confirm = element("button", "primary", editor.id ? "Сохранить" : "Добавить");
+      confirm.type = "submit";
+      confirm.disabled = !title.value.trim();
+      const cancel = element("button", "secondary", "Отмена");
+      cancel.addEventListener("click", closeEditor);
+      controls.append(confirm, cancel);
+      form.append(title, description, controls);
+
+      title.addEventListener("input", () => {
+        editor.title = title.value;
+        confirm.disabled = !title.value.trim();
+      });
+      description.addEventListener("input", () => { editor.description = description.value; });
+      form.addEventListener("submit", event => {
+        event.preventDefault();
+        const name = title.value.trim();
+        if (!name) return;
+        const current = tasks.find(task => task.id === editor.id);
+        const id = current?.id ?? (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+        const task = { id, status: current?.status ?? editor.status, title: name, description: description.value.trim() };
+        if (current) tasks = tasks.map(item => item.id === id ? task : item);
+        else tasks.push(task);
+        editor = null;
+        save();
+        render();
+        focusTask(id);
+        announcement.textContent = current ? "Задача сохранена." : "Задача добавлена.";
+      });
+      form.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeEditor();
+        }
+      });
+      return form;
+    }
+
+    function render() {
+      for (const [status, lane] of lanes) {
+        const items = tasks.filter(task => task.status === status);
+        const nodes = items.map(task => editor?.id === task.id ? makeEditor() : makeCard(task));
+        const startsHere = editor?.status === status && !editor.id;
+        if (startsHere) nodes.push(makeEditor());
+        lane.cards.replaceChildren(...nodes);
+        lane.count.textContent = items.length;
+        lane.add.hidden = startsHere;
+      }
+    }
+
+    function closeActions(except = null) {
+      for (const actions of board.querySelectorAll(".card-actions[open]")) {
+        if (actions !== except) actions.open = false;
+      }
+    }
+
+    for (const status of statuses) {
+      const lane = element("section", "lane");
+      lane.dataset.status = status.id;
+      const header = element("div", "lane-head");
+      const dot = element("span", "lane-dot");
+      dot.setAttribute("aria-hidden", "true");
+      const heading = element("h2", "", status.title);
+      heading.id = `heading-${status.id}`;
+      lane.setAttribute("aria-labelledby", heading.id);
+      const count = element("span", "count", "0");
+      count.setAttribute("aria-hidden", "true");
+      header.append(dot, heading, count);
+      const cards = element("div", "cards");
+      const add = element("button", "add-card");
+      add.setAttribute("aria-label", `Добавить задачу в колонку «${status.title}»`);
+      const plus = element("span", "plus");
+      plus.setAttribute("aria-hidden", "true");
+      add.append(plus, "Добавить задачу");
+      add.addEventListener("click", () => openEditor(status.id));
+      lane.append(header, cards, add);
+      board.append(lane);
+      lanes.set(status.id, { ...status, cards, count, add });
+    }
+
+    function clearDropMark() {
+      if (!drag) return;
+      drag.lane?.classList.remove("is-over");
+      drag.target?.classList.remove("is-before", "is-after");
+      drag.lane = null;
+      drag.target = null;
+    }
+
+    function endDrag() {
+      clearDropMark();
+      drag.source.classList.remove("is-dragging");
+      drag.preview?.remove();
+      drag = null;
+    }
+
+    board.addEventListener("pointerdown", event => {
+      const grip = event.target.closest(".card-grip");
+      if (!grip || editor || drag || event.button !== 0) return;
+      event.preventDefault();
+      closeActions();
+      grip.setPointerCapture(event.pointerId);
+      drag = {
+        pointerId: event.pointerId,
+        source: grip.closest(".card"),
+        startX: event.clientX,
+        startY: event.clientY,
+        preview: null,
+        lane: null,
+        target: null,
+        after: false
+      };
+    });
+
+    function trackDrag(event) {
+      if (!drag.preview) {
+        if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 5) return;
+        const title = drag.source.querySelector(".card-title").textContent;
+        drag.preview = element("div", "card drag-preview", title);
+        drag.preview.setAttribute("aria-hidden", "true");
+        drag.preview.style.width = `${drag.source.offsetWidth}px`;
+        document.body.append(drag.preview);
+        drag.source.classList.add("is-dragging");
+      }
+      drag.preview.style.left = `${event.clientX + 12}px`;
+      drag.preview.style.top = `${event.clientY + 10}px`;
+      clearDropMark();
+      const lane = document.elementFromPoint(event.clientX, event.clientY)?.closest(".lane");
+      if (!lane) return;
+      const cards = [...lane.querySelectorAll(".card")];
+      let target = cards.find(card => {
+        const box = card.getBoundingClientRect();
+        return event.clientY < box.top + box.height / 2;
+      });
+      const after = !target;
+      if (!target) target = cards.at(-1);
+      drag.lane = lane;
+      drag.target = target;
+      drag.after = after;
+      lane.classList.add("is-over");
+      if (target !== drag.source) target?.classList.add(after ? "is-after" : "is-before");
+    }
+
+    board.addEventListener("pointermove", event => {
+      if (drag?.pointerId === event.pointerId) trackDrag(event);
+    });
+
+    board.addEventListener("pointerup", event => {
+      if (drag?.pointerId !== event.pointerId) return;
+      trackDrag(event);
+      const { source, lane, target, after } = drag;
+      endDrag();
+      if (lane) moveTask(source.dataset.task, lane.dataset.status, target?.dataset.task, after);
+    });
+    board.addEventListener("lostpointercapture", event => {
+      if (drag?.pointerId === event.pointerId) endDrag();
+    });
+
+    document.addEventListener("click", event => {
+      if (!event.target.closest(".card-actions")) closeActions();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key !== "Escape") return;
+      if (drag) endDrag();
+      const open = board.querySelector(".card-actions[open]");
+      if (open) {
+        closeActions();
+        open.querySelector("summary").focus();
+      }
+    });
+
+    window.addEventListener("storage", event => {
+      if (event.key !== storageKey && event.key !== null) return;
+      try {
+        tasks = parseTasks(event.newValue);
+        if (drag) endDrag();
+        if (editor?.id) {
+          const current = tasks.find(task => task.id === editor.id);
+          if (current) editor.status = current.status;
+          else editor.id = null;
+        }
+        const focused = document.activeElement;
+        const field = focused?.closest(".editor") ? focused.tagName.toLowerCase() : "";
+        render();
+        if (field) board.querySelector(`.editor ${field}`)?.focus();
+      } catch {
+        storageError.hidden = false;
+      }
+    });
+
+    document.querySelector("#new-task").addEventListener("click", () => openEditor("todo"));
+    try {
+      tasks = parseTasks(localStorage.getItem(storageKey));
+    } catch {
+      storageError.hidden = false;
+    }
+    render();
+  </script>
+</body>
+</html>
