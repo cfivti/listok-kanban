@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7f5">
+  <meta name="description" content="Дизайн-кейс «Листка», личной канбан-доски с простыми карточками и редактированием на месте.">
+  <title>Листок — дизайн-кейс</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font: 16px/1.5 "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: #17212f;
+      background: #f6f7f5;
+      --ink: #17212f;
+      --muted: #4c5c6e;
+      --line: #dce1e4;
+      --navy: #142a4f;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; min-width: 280px; }
+    a { color: inherit; }
+    a:focus-visible { outline: 2px solid #536cb1; outline-offset: 4px; }
+    p, h1, h2, h3, figure { margin: 0; }
+    .wrap { width: min(1120px, calc(100% - 96px)); margin-inline: auto; }
+
+    .header .wrap {
+      display: flex;
+      align-items: center;
+      padding-block: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .identity { display: inline-flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 720; }
+    .mark {
+      display: inline-grid;
+      grid-auto-flow: column;
+      align-items: start;
+      place-content: center;
+      gap: 2px;
+      width: 31px;
+      height: 31px;
+      border-radius: 9px;
+      background: var(--navy);
+    }
+    .mark i { width: 3px; height: 10px; border-radius: 2px; background: #f8f4ff; }
+    .mark i:nth-child(2) { height: 14px; background: #dfcdf8; }
+    .mark i:nth-child(3) { height: 8px; background: #bce3d3; }
+    .arrow { flex: 0 0 auto; font-size: 17px; line-height: 1; }
+
+    .intro {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 24px;
+      padding-block: clamp(42px, 6vw, 82px) 29px;
+    }
+    h1 { font-size: clamp(59px, 10vw, 118px); font-weight: 690; letter-spacing: -.075em; line-height: .96; }
+    .lead { max-width: 35ch; margin-top: 17px; font-size: clamp(17px, 2.4vw, 23px); line-height: 1.36; color: var(--muted); }
+    .cta {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 9px;
+      min-height: 43px;
+      padding: 9px 15px;
+      border-radius: 9px;
+      background: var(--navy);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+    .cta:hover { background: #294771; }
+
+    .showcase {
+      padding: clamp(15px, 4vw, 44px);
+      border: 1px solid #d5e0e6;
+      border-radius: 24px;
+      background:
+        radial-gradient(ellipse at 92% 10%, #f5faf2, transparent 52%),
+        radial-gradient(ellipse at 6% 96%, #e0e3f5, transparent 55%),
+        #dfeef5;
+    }
+    .product {
+      display: grid;
+      grid-template-columns: minmax(112px, 17%) minmax(0, 1fr);
+      gap: 10px;
+      padding: 8px 8px 8px 0;
+      border: 1px solid #f6fbfd;
+      border-radius: 18px;
+      background: linear-gradient(110deg, #eaf5fb, #f8fbfc);
+      box-shadow: 0 12px 30px #172b3e20;
+    }
+    .product-side { padding: 8px 0 9px 9px; }
+    .product-side .mark { margin: 0 0 11px 5px; }
+    .side-label { margin: 0 3px 4px 5px; display: flex; align-items: center; justify-content: space-between; gap: 3px; }
+    .side-label b { font-size: 11px; color: #536371; }
+    .new { padding: 2px 6px; border: 1px solid #d5e2ea; border-radius: 5px; background: #f7fbfd; font-size: 9px; font-weight: 700; }
+    .product-side ul { list-style: none; padding: 0; margin: 0; }
+    .product-side li { border: 1px solid transparent; padding: 5px 6px; color: #344654; font-size: 11px; overflow-wrap: anywhere; }
+    .product-side li::before { content: ""; display: inline-block; margin: 0 5px 1px 0; width: 5px; height: 5px; border-radius: 50%; background: #7d8f9e; }
+    .product-side li.active { border-color: #dce7ee; border-radius: 7px; background: #fff; font-weight: 650; }
+    .product-side li.active::before { background: #233750; }
+
+    .product-board {
+      min-width: 0;
+      padding: 15px;
+      border: 1px solid #e8eff3;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 3px 10px rgb(23 43 62 / 16%);
+    }
+    .product-title { margin-bottom: 11px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .product-title strong { font-size: clamp(15px, 2.8vw, 27px); letter-spacing: -.04em; }
+    .task-button { border-radius: 6px; padding: 5px 8px; color: #fff; background: #292831; font-size: 10px; font-weight: 630; }
+    .columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .column {
+      --wash: #f8f6fa;
+      --accent: #7956ae;
+      --dot: #ad8bd9;
+      --tint: #f5effb;
+      min-width: 0;
+      min-height: clamp(180px, 25vw, 265px);
+      padding: 9px;
+      border: 1px solid color-mix(in srgb, var(--wash), var(--dot) 12%);
+      border-radius: 10px;
+      background: var(--wash);
+    }
+    .column:nth-child(2) { --wash: #faf8f3; --accent: #876319; --dot: #e0ad4a; --tint: #fdf4dd; }
+    .column:nth-child(3) { --wash: #f4f8f6; --accent: #386e58; --dot: #73b495; --tint: #e7f4ed; }
+    .column-name { display: flex; align-items: center; gap: 5px; margin-bottom: 8px; font-size: 11px; font-weight: 680; }
+    .column-name::before { content: ""; width: 3px; height: 12px; flex: 0 0 auto; border-radius: 3px; background: var(--dot); }
+    .column-name small { border-radius: 4px; padding: 0 4px; background: var(--tint); color: var(--accent); font-weight: 650; }
+    .note {
+      margin-bottom: 6px;
+      padding: 8px;
+      overflow-wrap: anywhere;
+      border: 1px solid #e9e7ec;
+      border-radius: 7px;
+      background: #fff;
+      box-shadow: 0 1px 2px #302b3e08;
+      font-size: 11px;
+    }
+    .note p { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .insert { padding-top: 3px; text-align: center; color: var(--accent); font-size: 10px; font-weight: 650; }
+    figcaption { margin-top: 8px; color: var(--muted); font-size: 12px; }
+
+    .case-body { padding-block: 43px 48px; }
+    .brief {
+      display: grid;
+      grid-template-columns: minmax(130px, .75fr) minmax(0, 2fr);
+      gap: 18px 30px;
+      margin-bottom: 35px;
+    }
+    h2 { font-size: clamp(25px, 4vw, 34px); font-weight: 680; letter-spacing: -.045em; line-height: 1.15; }
+    .brief p { max-width: 62ch; color: var(--muted); font-size: 17px; line-height: 1.55; }
+    .decisions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 22px;
+      padding-top: 23px;
+      border-top: 1px solid var(--line);
+    }
+    .decisions h3 { font-size: 17px; line-height: 1.25; letter-spacing: -.025em; }
+    .decisions p { margin-top: 7px; color: var(--muted); font-size: 14px; }
+    .footer .wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 18px 0 25px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .footer a { color: var(--navy); font-weight: 650; text-underline-offset: 3px; }
+
+    @media (max-width: 780px) {
+      .wrap { width: calc(100% - 48px); }
+      .showcase { padding: 17px; }
+    }
+    @media (max-width: 620px) {
+      .wrap { width: calc(100% - 28px); }
+      .header .wrap { padding-block: 12px; }
+      .intro { flex-wrap: wrap; gap: 15px; padding-block: 34px 20px; }
+      .lead { margin-top: 9px; }
+      .showcase { border-radius: 15px; padding: 8px; }
+      .product { grid-template-columns: minmax(0, 1fr); gap: 5px; padding: 5px; border-radius: 12px; }
+      .product-side { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 2px; }
+      .product-side .mark { display: none; }
+      .side-label { margin: 0; }
+      .product-side ul { display: flex; flex-wrap: wrap; gap: 3px; }
+      .product-side li { padding: 2px 4px; font-size: 10px; }
+      .product-board { padding: 7px; border-radius: 9px; }
+      .task-button { font-size: 9px; padding-inline: 5px; }
+      .columns { gap: 4px; }
+      .column { min-height: 119px; padding: 4px; border-radius: 6px; }
+      .column-name { gap: 3px; font-size: 8px; margin-bottom: 4px; }
+      .column-name small { display: none; }
+      .note { padding: 4px; border-radius: 5px; font-size: 8px; }
+      .note p, .insert { font-size: 8px; }
+      .case-body { padding-block: 28px 33px; }
+      .brief { grid-template-columns: 1fr; gap: 8px; margin-bottom: 21px; }
+      .brief p { font-size: 16px; }
+      .decisions { grid-template-columns: 1fr; gap: 17px; padding-top: 19px; }
+      .decisions p { margin-top: 3px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="wrap">
+      <div class="identity"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Дизайн-кейс</div>
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="intro">
+      <div>
+        <h1>Листок</h1>
+        <p class="lead">Личная канбан-доска, где задачи видны целиком и редактируются на месте.</p>
+      </div>
+      <a class="cta" href="https://cfivti.github.io/listok-kanban/">Открыть доску <span class="arrow" aria-hidden="true">→</span></a>
+    </div>
+    <figure>
+      <div class="showcase" aria-hidden="true">
+        <div class="product">
+          <div class="product-side">
+            <span class="mark"><i></i><i></i><i></i></span>
+            <div class="side-label"><b>Доски</b><span class="new">New</span></div>
+            <ul><li class="active">Портфолио</li><li>Личное</li></ul>
+          </div>
+          <div class="product-board">
+            <div class="product-title"><strong>Портфолио</strong><span class="task-button">＋ Новая задача</span></div>
+            <div class="columns">
+              <div class="column">
+                <div class="column-name">К выполнению <small>2</small></div>
+                <div class="note"><b>Собрать референсы</b><p>Выбрать примеры для обложки.</p></div>
+                <div class="note"><b>Набросать структуру кейса</b></div>
+                <div class="insert">＋ Добавить задачу</div>
+              </div>
+              <div class="column">
+                <div class="column-name">В работе <small>1</small></div>
+                <div class="note"><b>Подготовить визуалы</b><p>Доска и редактирование карточки.</p></div>
+                <div class="insert">＋ Добавить задачу</div>
+              </div>
+              <div class="column">
+                <div class="column-name">Готово <small>1</small></div>
+                <div class="note"><b>Выбрать проекты</b></div>
+                <div class="insert">＋ Добавить задачу</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>Пример доски с демонстрационными задачами.</figcaption>
+    </figure>
+
+    <section class="case-body" aria-labelledby="brief-title">
+      <div class="brief">
+        <h2 id="brief-title">Задача</h2>
+        <p>Сделать канбан для одного человека, которым можно пользоваться как доской со стикерами. Чтобы понять, что делать дальше, достаточно посмотреть на карточки и их статус.</p>
+      </div>
+      <div class="decisions">
+        <article>
+          <h3>Доски слева</h3>
+          <p>Под каждый проект можно создать отдельную доску через New. Выбранная доска выделяется белой строкой.</p>
+        </article>
+        <article>
+          <h3>Название на месте</h3>
+          <p>Карандаш появляется рядом с заголовком при наведении. После правки название обновляется и в списке досок.</p>
+        </article>
+        <article>
+          <h3>Карточки перед глазами</h3>
+          <p>У задачи есть название и необязательное описание. Нажатие позволяет править текст на доске, а перетаскивание меняет колонку.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+  <footer class="footer">
+    <div class="wrap">
+      <p>В текущей версии доски и карточки сохраняются в браузере.</p>
+      <a href="https://cfivti.github.io/listok-kanban/">Попробовать «Листок» <span aria-hidden="true">→</span></a>
+    </div>
+  </footer>
+</body>
+</html>
