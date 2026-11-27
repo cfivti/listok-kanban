@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f5f6f7">
+  <meta name="theme-color" content="#edf5fa">
   <title>Листок — личная канбан-доска</title>
   <style>
     :root {
       color-scheme: light;
       font: 15px/1.45 "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       color: #24252b;
-      background: #f5f6f7;
+      background: #edf5fa;
       --ink: #24252b;
       --muted: #656873;
       --line: #e7e8eb;
@@ -26,15 +26,21 @@
       outline-offset: 3px;
     }
 
-    .wrap { width: min(1280px, calc(100% - 112px)); margin-inline: auto; }
-    .topbar { background: #fff; border-bottom: 1px solid var(--line); }
+    .workspace {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      align-items: start;
+      gap: 12px;
+      min-height: 100vh;
+      padding: 12px 12px 12px 0;
+      background: linear-gradient(110deg, #eaf5fb, #f0f7fb 55%, #f7fafb);
+    }
+    .sidebar { min-width: 0; padding: 17px 4px 20px 16px; }
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
-      min-height: 65px;
-      font-weight: 700;
-      letter-spacing: -.025em;
+      width: max-content;
+      margin: 0 0 24px 6px;
     }
     .brand-mark {
       display: grid;
@@ -45,15 +51,144 @@
       width: 30px;
       height: 30px;
       border-radius: 9px;
-      background: #272731;
+      background: #112653;
     }
     .brand-mark i { width: 3px; border-radius: 2px; background: #f6f1ff; height: 10px; }
     .brand-mark i:nth-child(2) { background: #dfcdf8; height: 14px; }
     .brand-mark i:nth-child(3) { background: #bce3d3; height: 8px; }
 
-    main { padding-block: 51px 54px; }
-    .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    h1 { margin: 0; font-size: clamp(29px, 4vw, 42px); line-height: 1.12; letter-spacing: -.055em; font-weight: 700; }
+    .sidebar-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0 5px 8px 8px;
+    }
+    .sidebar-heading h2 {
+      margin: 0;
+      color: #536371;
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .new-board {
+      min-height: 30px;
+      padding: 3px 9px;
+      color: #283e52;
+      background: #ffffffa6;
+      border: 1px solid #d5e2ea;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .new-board:hover { background: #fff; border-color: #bacdd9; }
+    .board-list {
+      display: grid;
+      gap: 3px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .board-link {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      min-height: 35px;
+      padding: 6px 9px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      background: transparent;
+      color: #344654;
+      text-align: left;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+    .board-link::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: #8496a3;
+    }
+    .board-link:hover { background: #ffffff99; }
+    .board-link[aria-current] {
+      color: #1c2a39;
+      background: #fff;
+      border-color: #dce7ee;
+      box-shadow: 0 1px 3px #162c4210;
+      font-weight: 650;
+    }
+    .board-link[aria-current]::before { background: #233750; }
+
+    .board-frame {
+      min-width: 0;
+      min-height: calc(100vh - 24px);
+      padding: 22px;
+      background: #fff;
+      border: 1px solid #e8eff3;
+      border-radius: 16px;
+      box-shadow: 0 3px 10px rgb(23 43 62 / 16%);
+    }
+    .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; }
+    .board-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    h1 {
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-size: clamp(23px, 3vw, 32px);
+      line-height: 1.2;
+      letter-spacing: -.045em;
+      font-weight: 700;
+    }
+    .rename-board {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: #546372;
+      opacity: 0;
+    }
+    .board-name:hover .rename-board, .board-name:focus-within .rename-board { opacity: 1; }
+    .rename-board:hover { background: #edf3f7; }
+    .pencil {
+      position: relative;
+      display: block;
+      width: 14px;
+      height: 5px;
+      border: 1.3px solid currentColor;
+      border-radius: 0 2px 2px 0;
+      transform: rotate(-45deg);
+    }
+    .pencil::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      left: -4px;
+      width: 0;
+      height: 0;
+      border: 2px solid transparent;
+      border-right: 3px solid currentColor;
+      border-left: 0;
+    }
+    .rename-form { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 7px; min-width: 0; }
+    .rename-form input {
+      flex: 1 1 150px;
+      min-width: 0;
+      padding: 7px 9px;
+      border: 1px solid #cfdce6;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 650;
+    }
+    .rename-form button { min-height: 34px; padding: 6px 9px; }
+    .page-heading > .primary { flex: 0 0 auto; }
+    @media (hover: none) { .rename-board { opacity: 1; } }
     .primary, .secondary {
       display: inline-flex;
       align-items: center;
@@ -84,13 +219,8 @@
     .board {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 25px;
-      padding: 14px;
-      background: #fff;
-      border: 1px solid #e8e8ec;
-      border-radius: 20px;
-      box-shadow: 0 3px 12px #29273506;
+      gap: 12px;
+      margin-top: 20px;
     }
     .lane {
       --accent: #7956ae;
@@ -100,7 +230,7 @@
       --wash: #f8f6fa;
       --lane-line: #f0edf3;
       min-width: 0;
-      min-height: clamp(365px, 54vh, 590px);
+      min-height: clamp(365px, calc(100vh - 140px), 900px);
       padding: 13px;
       border: 1px solid var(--lane-line);
       border-radius: 14px;
@@ -313,41 +443,67 @@
     }
     [hidden] { display: none !important; }
 
-    @media (max-width: 940px) { .wrap { width: calc(100% - 56px); } }
+    @media (max-width: 940px) {
+      .workspace { grid-template-columns: 178px minmax(0, 1fr); gap: 8px; }
+      .sidebar { padding-left: 10px; }
+      .board-frame { padding: 15px; }
+      .board { gap: 7px; }
+      .lane { padding: 8px; }
+    }
     @media (max-width: 695px) {
-      .wrap { width: calc(100% - 32px); }
-      .brand { min-height: 55px; }
-      main { padding-block: 29px 35px; }
-      .board { grid-template-columns: minmax(0, 1fr); margin-top: 19px; gap: 10px; padding: 9px; border-radius: 15px; }
+      .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 9px; padding: 10px; }
+      .sidebar { padding: 2px 1px; }
+      .brand { display: none; }
+      .sidebar-heading { margin: 0 1px 6px 3px; }
+      .board-list { display: flex; gap: 5px; overflow-x: auto; padding: 4px; }
+      .board-list li { flex: 0 0 auto; max-width: 75%; }
+      .board-link { min-height: 32px; }
+      .board-frame { min-height: 0; padding: 12px; }
+      .page-heading { flex-wrap: wrap; }
+      .board { grid-template-columns: minmax(0, 1fr); margin-top: 14px; gap: 9px; }
       .lane { min-height: 0; padding: 10px; border-radius: 11px; }
       .lane-head { min-height: 28px; margin-bottom: 7px; }
       .cards:empty + .add-card { flex-direction: row; min-height: 56px; }
     }
     @media (max-width: 350px) {
-      .wrap { width: calc(100% - 20px); }
-      h1 { font-size: 25px; }
-      .page-heading { gap: 8px; }
-      .page-heading .primary { padding-inline: 8px; gap: 4px; }
+      h1 { font-size: 21px; }
+      .page-heading > .primary { padding-inline: 8px; gap: 4px; }
     }
     @media (prefers-reduced-motion: reduce) { .lane { transition: none; } }
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="wrap brand">
-      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
-      Листок
-    </div>
-  </header>
-  <main class="wrap">
-    <div class="page-heading">
-      <h1>Мои задачи</h1>
-      <button class="primary" id="new-task" type="button"><span class="plus" aria-hidden="true"></span>Новая задача</button>
-    </div>
-    <p class="storage-error" id="storage-error" role="alert" hidden>Браузер не смог сохранить изменения. Задачи доступны, пока открыта эта вкладка.</p>
-    <div class="board" id="board" role="region" aria-label="Канбан-доска"></div>
+  <div class="workspace">
+    <aside class="sidebar" aria-labelledby="boards-heading">
+      <div class="brand" role="img" aria-label="Листок">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      </div>
+      <div class="sidebar-heading">
+        <h2 id="boards-heading">Доски</h2>
+        <button class="new-board" id="new-board" type="button" aria-label="New — новая доска">New</button>
+      </div>
+      <ul class="board-list" id="board-list"></ul>
+    </aside>
+    <main class="board-frame">
+      <div class="page-heading">
+        <div class="board-name" id="board-name">
+          <h1 id="board-title">Мои задачи</h1>
+          <button class="rename-board" id="rename-board" type="button" aria-label="Переименовать доску">
+            <span class="pencil" aria-hidden="true"></span>
+          </button>
+        </div>
+        <form class="rename-form" id="rename-form" hidden>
+          <input id="rename-input" aria-label="Название доски" maxlength="80" required>
+          <button class="primary" type="submit">Сохранить</button>
+          <button class="secondary" id="cancel-rename" type="button">Отмена</button>
+        </form>
+        <button class="primary" id="new-task" type="button"><span class="plus" aria-hidden="true"></span>Новая задача</button>
+      </div>
+      <p class="storage-error" id="storage-error" role="alert" hidden>Браузер не смог сохранить изменения. Они доступны, пока открыта эта вкладка.</p>
+      <div class="board" id="board" role="region" aria-label="Канбан-доска"></div>
+    </main>
     <div class="sr-only" aria-live="polite" id="announcement"></div>
-  </main>
+  </div>
   <script>
     "use strict";
 
@@ -357,10 +513,23 @@
       { id: "done", title: "Готово", destination: "Отметить готовой" }
     ];
     const storageKey = "listok-kanban-v1";
+    const boardsKey = "listok-kanban-boards-v1";
+    const selectionKey = "listok-kanban-selected-board";
+    const firstBoard = { id: "main", title: "Мои задачи" };
     const board = document.querySelector("#board");
+    const boardList = document.querySelector("#board-list");
+    const boardName = document.querySelector("#board-name");
+    const boardTitle = document.querySelector("#board-title");
+    const renameButton = document.querySelector("#rename-board");
+    const renameForm = document.querySelector("#rename-form");
+    const renameInput = document.querySelector("#rename-input");
     const announcement = document.querySelector("#announcement");
     const storageError = document.querySelector("#storage-error");
     const lanes = new Map();
+    const draftTasks = new Map();
+    const unsaved = new Map();
+    let boards = [firstBoard];
+    let activeBoardId = firstBoard.id;
     let tasks = [];
     let editor = null;
     let drag = null;
@@ -386,13 +555,120 @@
       });
     }
 
-    function save() {
+    function parseBoards(value) {
+      const data = JSON.parse(value ?? "[]");
+      if (!Array.isArray(data)) throw new Error("Invalid board list");
+      const names = new Map();
+      for (const item of data) {
+        if (typeof item?.id === "string" && item.id && typeof item.title === "string" && item.title.trim()) {
+          names.set(item.id, item.title);
+        }
+      }
+      const mainTitle = names.get(firstBoard.id) ?? firstBoard.title;
+      names.delete(firstBoard.id);
+      return [{ ...firstBoard, title: mainTitle }, ...Array.from(names, ([id, title]) => ({ id, title }))];
+    }
+
+    function createId() {
+      return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+
+    function taskKey(id) {
+      return id === firstBoard.id ? storageKey : `${storageKey}:${id}`;
+    }
+
+    function readStorage(key) {
+      return unsaved.get(key) ?? localStorage.getItem(key);
+    }
+
+    function writeStorage(key, value) {
       try {
-        localStorage.setItem(storageKey, JSON.stringify(tasks));
-        storageError.hidden = true;
+        localStorage.setItem(key, value);
+        unsaved.delete(key);
+      } catch {
+        unsaved.set(key, value);
+      }
+      storageError.hidden = unsaved.size === 0;
+    }
+
+    function save() {
+      writeStorage(taskKey(activeBoardId), JSON.stringify(tasks));
+    }
+
+    function updateBoards(change) {
+      try {
+        const latest = parseBoards(readStorage(boardsKey));
+        if (!latest.some(item => item.id === activeBoardId)) {
+          latest.push(boards.find(item => item.id === activeBoardId));
+        }
+        boards = latest;
       } catch {
         storageError.hidden = false;
       }
+      boards = change(boards);
+      writeStorage(boardsKey, JSON.stringify(boards));
+    }
+
+    function loadTasks() {
+      tasks = [];
+      try {
+        tasks = parseTasks(readStorage(taskKey(activeBoardId)));
+      } catch {
+        storageError.hidden = false;
+      }
+    }
+
+    function renderBoardList() {
+      const current = boards.find(item => item.id === activeBoardId);
+      boardTitle.textContent = current.title;
+      const items = boards.map(item => {
+        const row = element("li");
+        const button = element("button", "board-link", item.title);
+        if (item.id === activeBoardId) button.setAttribute("aria-current", "true");
+        button.addEventListener("click", () => {
+          if (item.id === activeBoardId) return;
+          selectBoard(item.id);
+          boardList.querySelector("[aria-current]")?.focus({ preventScroll: true });
+        });
+        row.append(button);
+        return row;
+      });
+      boardList.replaceChildren(...items);
+    }
+
+    function showRenameForm() {
+      renameInput.value = boardTitle.textContent;
+      renameInput.setCustomValidity("");
+      boardName.hidden = true;
+      renameForm.hidden = false;
+      renameInput.focus();
+      renameInput.select();
+    }
+
+    function hideRenameForm() {
+      renameForm.hidden = true;
+      boardName.hidden = false;
+    }
+
+    function reconcileDraft() {
+      if (!editor?.id) return;
+      const saved = tasks.find(task => task.id === editor.id);
+      if (saved) editor.status = saved.status;
+      else editor.id = null;
+    }
+
+    function selectBoard(id) {
+      if (drag) endDrag();
+      if (editor) draftTasks.set(activeBoardId, editor);
+      else draftTasks.delete(activeBoardId);
+      activeBoardId = id;
+      writeStorage(selectionKey, id);
+      loadTasks();
+      editor = draftTasks.get(id) ?? null;
+      reconcileDraft();
+      hideRenameForm();
+      renderBoardList();
+      render();
     }
 
     function focusTask(id) {
@@ -514,7 +790,7 @@
         const name = title.value.trim();
         if (!name) return;
         const current = tasks.find(task => task.id === editor.id);
-        const id = current?.id ?? (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+        const id = current?.id ?? createId();
         const task = { id, status: current?.status ?? editor.status, title: name, description: description.value.trim() };
         if (current) tasks = tasks.map(item => item.id === id ? task : item);
         else tasks.push(task);
@@ -666,15 +942,24 @@
     });
 
     window.addEventListener("storage", event => {
-      if (event.key !== storageKey && event.key !== null) return;
-      try {
-        tasks = parseTasks(event.newValue);
-        if (drag) endDrag();
-        if (editor?.id) {
-          const current = tasks.find(task => task.id === editor.id);
-          if (current) editor.status = current.status;
-          else editor.id = null;
+      const currentTaskKey = taskKey(activeBoardId);
+      if (event.key === boardsKey || event.key === null) {
+        try {
+          boards = parseBoards(readStorage(boardsKey));
+          if (!boards.some(item => item.id === activeBoardId)) {
+            selectBoard(firstBoard.id);
+            return;
+          }
+          renderBoardList();
+        } catch {
+          storageError.hidden = false;
         }
+      }
+      if ((event.key !== currentTaskKey && event.key !== null) || unsaved.has(currentTaskKey)) return;
+      try {
+        tasks = parseTasks(readStorage(currentTaskKey));
+        if (drag) endDrag();
+        reconcileDraft();
         const focused = document.activeElement;
         const field = focused?.closest(".editor") ? focused.tagName.toLowerCase() : "";
         render();
@@ -685,11 +970,54 @@
     });
 
     document.querySelector("#new-task").addEventListener("click", () => openEditor("todo"));
+    document.querySelector("#new-board").addEventListener("click", () => {
+      const id = createId();
+      updateBoards(list => {
+        const names = new Set(list.map(item => item.title));
+        const base = "Новая доска";
+        let title = base;
+        for (let suffix = 2; names.has(title); suffix += 1) title = `${base} ${suffix}`;
+        return [...list, { id, title }];
+      });
+      selectBoard(id);
+      boardList.querySelector("[aria-current]")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      showRenameForm();
+    });
+    renameButton.addEventListener("click", showRenameForm);
+    document.querySelector("#cancel-rename").addEventListener("click", () => {
+      hideRenameForm();
+      renameButton.focus();
+    });
+    renameInput.addEventListener("input", () => renameInput.setCustomValidity(""));
+    renameForm.addEventListener("keydown", event => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      hideRenameForm();
+      renameButton.focus();
+    });
+    renameForm.addEventListener("submit", event => {
+      event.preventDefault();
+      const title = renameInput.value.trim();
+      if (!title) {
+        renameInput.setCustomValidity("Введи название доски.");
+        renameInput.reportValidity();
+        return;
+      }
+      updateBoards(list => list.map(item => item.id === activeBoardId ? { ...item, title } : item));
+      hideRenameForm();
+      renderBoardList();
+      renameButton.focus();
+      announcement.textContent = "Название доски сохранено.";
+    });
     try {
-      tasks = parseTasks(localStorage.getItem(storageKey));
+      boards = parseBoards(readStorage(boardsKey));
+      const lastBoardId = readStorage(selectionKey);
+      if (boards.some(item => item.id === lastBoardId)) activeBoardId = lastBoardId;
     } catch {
       storageError.hidden = false;
     }
+    loadTasks();
+    renderBoardList();
     render();
   </script>
 </body>
